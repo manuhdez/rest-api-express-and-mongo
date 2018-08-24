@@ -2,60 +2,88 @@
 
 const express = require('express');
 const router = express.Router();
+const Question = require('./models').Question;
+
+router.param("qID", (req, res, next, id) => {
+  Question.findById(id, (err, doc) => {
+    if (err) return next(err);
+    if (!doc) {
+      err = new Error("Not Found");
+      err.status = 404;
+      return next(err);
+    }
+    req.question = doc;
+    return next();
+  });
+});
+
+router.param("aID", (req, res, next, id) => {
+  req.answer = req.question.answers.id(id);
+  if (!req.answer) {
+    err = new Error("Not Found");
+    err.status = 404;
+    return next(err);
+  }
+  next();
+});
 
 // GET /questions
 // return all the questions
-router.get('/', (req, res) => {
-  res.json({
-    response: "Here goes all the questions"
+router.get('/', (req, res, next) => {
+  Question.find({})
+  .sort({createdAt: -1})
+  .exec((err, questions) => {
+    if (err) return next(err);
+    res.json(questions);
   });
 });
 
 // POST /questions
 // create a new question
-router.post('/', (req, res) => {
-  res.json({
-    response: "You created a new question",
-    body: req.body
+router.post('/', (req, res, next) => {
+  const question = new Question(req.body);
+
+  question.save((err, question) => {
+    if (err) return next(err);
+    res.status(201);
+    res.json(questions);
   });
 });
 
 // GET /questions/:id
 // return an specific question
-router.get('/:qID', (req, res) => {
-  res.json({
-    response: `You sent a request to question ${req.params.qID}`
-  });
+router.get('/:qID', (req, res, next) => {
+    res.json(req.question);
 });
 
 // POST /questions/:id/answers
 // create a new answer
-router.post('/:qID/answers', (req, res) => {
-  res.json({
-    response: "You created a new answer",
-    questionId: req.params.qID,
-    body: req.body
+router.post('/:qID/answers', (req, res, next) => {
+  req.question.answer.push(req.body);
+  req.question.save((err, question) => {
+    if (err) return next(err);
+    res.status(201);
+    res.json(question);
   });
 });
 
 // PUT /questions/:qID/answers/:aID
 // Edit specific answer
 router.put('/:qID/answers/:aID', (req, res) => {
-  res.json({
-    response: "You edited a specific answer",
-    questionId: req.params.qID,
-    answerId: req.params.aID,
-    body: req.body
-  })
+  req.answer.updateOne(req.body, (err, result) => {
+    if (err) return next(err);
+    res.json(result);
+  });
 });
 
 // DELETE /questions/:qID/answers/:aID
 // Delete a specific answer
-router.delete('/:qID/answers/:aID', (req, res) => {
-  res.json({
-    response: "You deleted a specific answer",
-    questionId: req.params.qID,
-    answerId: req.params.aID
+router.delete('/:qID/answers/:aID', (req, res, next) => {
+  req.answer.deleteOne( err => {
+    req.question.save( (err, question) => {
+      if (err) return next(err);
+      res.json(question);
+    })
   })
 });
 
@@ -68,15 +96,14 @@ router.post('/:qID/answers/:aID/vote-:dir', (req, res, next) => {
     err.status = 404;
     next(err);
   } else {
+    req.vote = req.params.dir;
     next();
   }
 }, (req, res) => {
-  res.json({
-    response: `You voted ${req.params.dir} to the answer ${req.params.aID}`,
-    questionId: req.params.qID,
-    answerId: req.params.aID,
-    vote: req.params.dir
-  })
+  req.answer.vote(req.vote, (err, question) => {
+    if (err) return next(err);
+    res.json(question);
+  });
 });
 
 module.exports = router;
