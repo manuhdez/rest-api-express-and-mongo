@@ -19,17 +19,31 @@ db.once('open', () => {
   const Schema = mongoose.Schema;
   const AnimalSchema = new Schema({
     type: {type: String, default: "goldfish"},
-    size: {type: String, default: "small"},
+    size: String,
     color: {type: String, default: "golden"},
     mass: {type: Number, default: 0.007},
     name: {type: String, default: "Angela"}
   });
 
+  AnimalSchema.pre("save", function(next) {
+    if (this.mass >= 5 || this.mass < 100) this.size = "medium";
+    if (this.mass >= 100) this.size = "big";
+    if (this.mass < 5) this.size = "small";
+    next();
+  });
+
+  AnimalSchema.statics.findFromSize = function(size, callback) {
+    return this.find({size: size}, callback);
+  };
+
+  AnimalSchema.methods.findSameColor = function(callback) {
+    return this.model("Animal").find({color: this.color}, callback);
+  }
+
   const Animal = mongoose.model("Animal", AnimalSchema);
 
   const elephant = new Animal({
     type: 'elephant',
-    size: 'big',
     color: 'gray',
     mass: 6000,
     name: 'Dumbo'
@@ -37,30 +51,49 @@ db.once('open', () => {
 
   const whale = new Animal({
     type: "whale",
-    size: "big",
     mass: 190500,
     name: "Fig"
   });
 
   const animal = new Animal({});
 
+  const animalData = [
+    {
+      type: 'mouse',
+      color: 'gray',
+      mass: 0.035,
+      name: 'Marvin'
+    },
+    {
+      type: 'nutria',
+      color: 'brown',
+      mass: 6.35,
+      name: 'Gretchen'
+    },
+    {
+      type: 'wolf',
+      color: 'gray',
+      mass: 45,
+      name: 'Iris'
+    },
+    elephant,
+    animal,
+    whale
+  ];
+
   // Empty animals collection before saving
   Animal.deleteMany({}, (err) => {
     if (err) console.error(err);
     // Save animals in the collection after the collection its empty
-    elephant.save((err) => {
+    Animal.create(animalData, (err) => {
       if (err) console.error("Save Failed!", err);
-      animal.save((err) => {
-        if (err) console.error("Save Failed!", err);
-        whale.save((err) => {
-          if (err) console.error("Save Failed!", err);
-          // Read all the animals inside the collection that has a "big" size
-          Animal.find({size: "big"}, (err, animals) => {
-            if (err) console.error(err);
-            animals.forEach( animal => console.log(`${animal.name} the ${animal.color} ${animal.type}`));
-            db.close(() => {
-              console.log('Connection closed.');
-            });
+      // Read all the animals inside the collection that has a "big" size
+      Animal.findOne({type: "elephant"}, (err, elephant) => {
+        if (err) console.error(err);
+        elephant.findSameColor(function(err, animals) {
+          animals.forEach( animal => console.log(`${animal.name} the ${animal.color} ${animal.type} is a ${animal.size}-sized animal`));
+          db.close(() => {
+            console.log('Connection closed.');
           });
         });
       });
