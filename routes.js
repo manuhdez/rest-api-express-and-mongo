@@ -8,7 +8,7 @@ router.param("qID", (req, res, next, id) => {
   Question.findById(id, (err, doc) => {
     if (err) return next(err);
     if (!doc) {
-      err = new Error("Not Found");
+      const err = new Error("Not Found");
       err.status = 404;
       return next(err);
     }
@@ -20,8 +20,9 @@ router.param("qID", (req, res, next, id) => {
 router.param("aID", (req, res, next, id) => {
   req.answer = req.question.answers.id(id);
   if (!req.answer) {
-    err = new Error("Not Found");
+    const err = new Error("Not Found");
     err.status = 404;
+
     return next(err);
   }
   next();
@@ -46,7 +47,7 @@ router.post('/', (req, res, next) => {
   question.save((err, question) => {
     if (err) return next(err);
     res.status(201);
-    res.json(questions);
+    res.json(question);
   });
 });
 
@@ -59,7 +60,7 @@ router.get('/:qID', (req, res, next) => {
 // POST /questions/:id/answers
 // create a new answer
 router.post('/:qID/answers', (req, res, next) => {
-  req.question.answer.push(req.body);
+  req.question.answers.push(req.body);
   req.question.save((err, question) => {
     if (err) return next(err);
     res.status(201);
@@ -70,7 +71,7 @@ router.post('/:qID/answers', (req, res, next) => {
 // PUT /questions/:qID/answers/:aID
 // Edit specific answer
 router.put('/:qID/answers/:aID', (req, res) => {
-  req.answer.updateOne(req.body, (err, result) => {
+  req.answer.update(req.body, (err, result) => {
     if (err) return next(err);
     res.json(result);
   });
@@ -79,7 +80,7 @@ router.put('/:qID/answers/:aID', (req, res) => {
 // DELETE /questions/:qID/answers/:aID
 // Delete a specific answer
 router.delete('/:qID/answers/:aID', (req, res, next) => {
-  req.answer.deleteOne( err => {
+  req.answer.remove( err => {
     req.question.save( (err, question) => {
       if (err) return next(err);
       res.json(question);
@@ -100,6 +101,7 @@ router.post('/:qID/answers/:aID/vote-:dir', (req, res, next) => {
     next();
   }
 }, (req, res) => {
+  console.log("llego");
   req.answer.vote(req.vote, (err, question) => {
     if (err) return next(err);
     res.json(question);

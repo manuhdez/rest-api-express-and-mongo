@@ -18,17 +18,18 @@ const AnswerSchema = new Schema({
   votes: {type: Number, default: 0}
 });
 
-Answer.method("update", function(updates, callback) {
-  Object.assing(this, updates, {updatedAt: new Date()});
+AnswerSchema.method("update", function(updates, callback) {
+  Object.assign(this, updates, {updatedAt: new Date()});
   this.parent().save(callback);
 });
 
-Answer.method("vote", function(vote, callback) {
+AnswerSchema.method("vote", function(vote, callback) {
   if (vote === 'up') {
     this.votes += 1;
   } else {
     this.votes -= 1;
   }
+  this.parent().save(callback);
 });
 
 const QuestionSchema = new Schema({
