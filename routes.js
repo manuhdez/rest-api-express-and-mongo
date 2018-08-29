@@ -101,7 +101,6 @@ router.post('/:qID/answers/:aID/vote-:dir', (req, res, next) => {
     next();
   }
 }, (req, res) => {
-  console.log("llego");
   req.answer.vote(req.vote, (err, question) => {
     if (err) return next(err);
     res.json(question);
